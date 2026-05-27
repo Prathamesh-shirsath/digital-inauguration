@@ -1,5 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+    useState,
+    useEffect,
+} from "react";
+
+import {
+    useNavigate,
+} from "react-router-dom";
 
 import {
     FaUser,
@@ -29,6 +35,12 @@ function Login() {
     const [loading, setLoading] =
         useState(false);
 
+    // CLEAR PREFILLED VALUES
+    useEffect(() => {
+        setUsername("");
+        setPassword("");
+    }, []);
+
     // LOGIN
     const handleLogin =
         async (e) => {
@@ -38,7 +50,6 @@ function Login() {
                 setLoading(true);
                 setError("");
 
-                // document id = password
                 const userRef =
                     doc(
                         db,
@@ -57,12 +68,11 @@ function Login() {
                     const userData =
                         userSnap.data();
 
-                    // Match Email
+                    // Validate Email
                     if (
                         userData.email ===
                         username.trim()
                     ) {
-                        // Save Login
                         localStorage.setItem(
                             "isLoggedIn",
                             "true"
@@ -83,8 +93,7 @@ function Login() {
                             userData.name
                         );
 
-                        // Redirect
-                        // Redirect based on role
+                        // ROLE BASED LOGIN
                         if (
                             userData.role ===
                             "admin"
@@ -100,7 +109,6 @@ function Login() {
                                 "/display"
                             );
                         }
-                        
                     } else {
                         setError(
                             "Invalid login credentials"
@@ -133,9 +141,10 @@ function Login() {
                 <div className="absolute bottom-[-150px] right-[-100px] w-[450px] h-[450px] bg-indigo-500/20 blur-[120px] rounded-full animate-pulse" />
 
                 <div className="absolute top-[20%] right-[10%] w-[250px] h-[250px] bg-pink-400/10 blur-[100px] rounded-full" />
+
             </div>
 
-            {/* Wave Background */}
+            {/* Waves */}
             <div className="absolute inset-0 opacity-20">
 
                 <svg
@@ -186,6 +195,21 @@ function Login() {
                         className="mt-10 space-y-5"
                     >
 
+                        {/* Fake Autofill Inputs */}
+                        <input
+                            type="text"
+                            name="fakeusername"
+                            autoComplete="username"
+                            className="hidden"
+                        />
+
+                        <input
+                            type="password"
+                            name="fakepassword"
+                            autoComplete="current-password"
+                            className="hidden"
+                        />
+
                         {/* Username */}
                         <div className="relative">
 
@@ -193,6 +217,7 @@ function Login() {
 
                             <input
                                 type="email"
+                                name="real-email"
                                 value={
                                     username
                                 }
@@ -204,6 +229,7 @@ function Login() {
                                             .value
                                     )
                                 }
+                                autoComplete="off"
                                 placeholder="Enter Email"
                                 className="w-full h-[58px] sm:h-[62px] rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-200 outline-none pl-14 pr-4 transition-all duration-300"
                             />
@@ -216,6 +242,7 @@ function Login() {
 
                             <input
                                 type="password"
+                                name="real-password"
                                 value={
                                     password
                                 }
@@ -227,6 +254,7 @@ function Login() {
                                             .value
                                     )
                                 }
+                                autoComplete="new-password"
                                 placeholder="Enter Password"
                                 className="w-full h-[58px] sm:h-[62px] rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-200 outline-none pl-14 pr-4 transition-all duration-300"
                             />
@@ -239,7 +267,7 @@ function Login() {
                             </div>
                         )}
 
-                        {/* Button */}
+                        {/* Login Button */}
                         <button
                             type="submit"
                             disabled={
