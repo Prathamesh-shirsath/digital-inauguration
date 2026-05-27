@@ -8,39 +8,35 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../../firebase/config";
-import toast from "react-hot-toast";
 
 function CreateInauguration() {
-    const [loading, setLoading] =
-        useState(false);
+    const [eventName, setEventName] =
+        useState("");
+
+    const [chiefGuest, setChiefGuest] =
+        useState("");
+
+    const [designation, setDesignation] =
+        useState("");
+
+    const [eventDate, setEventDate] =
+        useState("");
 
     const [image, setImage] =
         useState(null);
 
     const [preview, setPreview] =
-        useState(null);
+        useState("");
 
-    const [form, setForm] =
-        useState({
-            eventName: "",
-            chiefGuest: "",
-            designation: "",
-            collegeName: "",
-            eventDate: "",
-            welcomeMessage: "",
-        });
+    const [loading, setLoading] =
+        useState(false);
 
-    const handleChange = (e) => {
-        setForm({
-            ...form,
-            [e.target.name]:
-                e.target.value,
-        });
-    };
-
+    // Handle Image
     const handleImage = (e) => {
         const file =
             e.target.files[0];
+
+        if (!file) return;
 
         setImage(file);
 
@@ -49,214 +45,292 @@ function CreateInauguration() {
         );
     };
 
-    const saveEvent = async () => {
-        try {
-            setLoading(true);
+    // Create Event
+    const handleSubmit =
+        async () => {
+            try {
+                if (
+                    !eventName ||
+                    !chiefGuest ||
+                    !designation ||
+                    !eventDate ||
+                    !image
+                ) {
+                    alert(
+                        "Please fill all fields"
+                    );
+                    return;
+                }
 
-            if (!image) {
-                toast.error("Please select image");
-                return;
-            }
+                setLoading(true);
 
-            // DEBUG LOGS
-            console.log(
-                "Cloud Name:",
-                import.meta.env.VITE_CLOUD_NAME
-            );
+                // Cloudinary Upload
+                const formData =
+                    new FormData();
 
-            console.log(
-                "Preset:",
-                import.meta.env.VITE_UPLOAD_PRESET
-            );
+                formData.append(
+                    "file",
+                    image
+                );
 
-            console.log("Image:", image);
+                formData.append(
+                    "upload_preset",
+                    import.meta.env
+                        .VITE_UPLOAD_PRESET
+                );
 
-            const cloudName =
-                import.meta.env.VITE_CLOUD_NAME;
+                const response =
+                    await axios.post(
+                        `https://api.cloudinary.com/v1_1/${import.meta.env
+                            .VITE_CLOUD_NAME
+                        }/image/upload`,
+                        formData
+                    );
 
-            const uploadPreset =
-                import.meta.env.VITE_UPLOAD_PRESET;
+                const imageUrl =
+                    response.data
+                        .secure_url;
 
-            const formData =
-                new FormData();
-
-            formData.append(
-                "file",
-                image
-            );
-
-            formData.append(
-                "upload_preset",
-                uploadPreset
-            );
-
-            const upload =
-                await axios.post(
-                    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-                    formData,
+                // Firestore Save
+                await addDoc(
+                    collection(
+                        db,
+                        "inaugurations"
+                    ),
                     {
-                        headers: {
-                            "Content-Type":
-                                "multipart/form-data",
-                        },
+                        eventName,
+                        chiefGuest,
+                        designation,
+                        eventDate,
+                        imageUrl,
+                        isLive: false,
+                        inaugurated: false,
+                        createdAt:
+                            new Date(),
                     }
                 );
 
-            console.log(
-                "Cloudinary Response:",
-                upload.data
-            );
+                alert(
+                    "Event Created Successfully!"
+                );
 
-            const imageUrl =
-                upload.data.secure_url;
+                // Reset
+                setEventName("");
+                setChiefGuest("");
+                setDesignation("");
+                setEventDate("");
+                setImage(null);
+                setPreview("");
 
-            await addDoc(
-                collection(
-                    db,
-                    "inaugurations"
-                ),
-                {
-                    ...form,
-                    imageUrl,
-                    inaugurated: false,
-                    createdAt: new Date(),
-                    isActive: true,
-                }
-            );
-
-            toast.success(
-                "Event Created!"
-            );
-
-            setForm({
-                eventName: "",
-                chiefGuest: "",
-                designation: "",
-                collegeName: "",
-                eventDate: "",
-                welcomeMessage: "",
-            });
-
-            setImage(null);
-            setPreview(null);
-
-        } catch (error) {
-            console.log(
-                "FULL ERROR:",
-                error.response?.data ||
-                error
-            );
-
-            toast.error(
-                "Upload failed"
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
+            } catch (error) {
+                console.log(error);
+                alert(
+                    "Failed to create event"
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
 
     return (
-        <div className="flex">
+        <div className="min-h-screen bg-[#F5F7FF]">
 
             <Sidebar />
 
-            <div className="ml-[260px] w-full p-10">
+            <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 pt-20 lg:pt-10 pb-10 max-w-[1600px] mx-auto">
 
-                <h1 className="text-4xl font-bold mb-8">
-                    Create New
-                    Inauguration
-                </h1>
+                {/* Header */}
+                <div className="mb-8">
 
-                <div className="bg-white p-8 rounded-3xl shadow-xl">
+                    <span className="bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold">
+                        EVENT MANAGEMENT
+                    </span>
 
-                    <div className="grid grid-cols-2 gap-5">
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-slate-800 mt-4 leading-tight">
+                        Create New Event
+                    </h1>
 
-                        <input
-                            name="eventName"
-                            placeholder="Event Name"
-                            className="border p-4 rounded-xl"
-                            onChange={
-                                handleChange
-                            }
-                        />
+                    <p className="text-gray-500 mt-3 text-sm sm:text-base">
+                        Create inauguration
+                        event for smart board
+                        display
+                    </p>
 
-                        <input
-                            name="chiefGuest"
-                            placeholder="Chief Guest Name"
-                            className="border p-4 rounded-xl"
-                            onChange={
-                                handleChange
-                            }
-                        />
+                </div>
 
-                        <input
-                            name="designation"
-                            placeholder="Designation"
-                            className="border p-4 rounded-xl"
-                            onChange={
-                                handleChange
-                            }
-                        />
+                {/* Main Card */}
+                <div className="bg-white rounded-[30px] md:rounded-[40px] shadow-xl p-5 sm:p-8 md:p-10">
 
-                        <input
-                            name="collegeName"
-                            placeholder="College Name"
-                            className="border p-4 rounded-xl"
-                            onChange={
-                                handleChange
-                            }
-                        />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-12">
 
-                        <input
-                            type="date"
-                            name="eventDate"
-                            className="border p-4 rounded-xl"
-                            onChange={
-                                handleChange
-                            }
-                        />
+                        {/* Left Side */}
+                        <div>
 
-                        <input
-                            name="welcomeMessage"
-                            placeholder="Welcome Message"
-                            className="border p-4 rounded-xl"
-                            onChange={
-                                handleChange
-                            }
-                        />
+                            <h2 className="text-2xl font-bold text-slate-800 mb-8">
+                                Event Details
+                            </h2>
+
+                            <div className="space-y-5">
+
+                                {/* Event Name */}
+                                <div>
+                                    <label className="text-gray-500 font-medium">
+                                        Event Name
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={
+                                            eventName
+                                        }
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setEventName(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Enter Event Name"
+                                        className="w-full mt-2 h-[58px] rounded-2xl border border-slate-200 bg-slate-50 px-5 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition"
+                                    />
+                                </div>
+
+                                {/* Chief Guest */}
+                                <div>
+                                    <label className="text-gray-500 font-medium">
+                                        Chief Guest
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={
+                                            chiefGuest
+                                        }
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setChiefGuest(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Enter Chief Guest"
+                                        className="w-full mt-2 h-[58px] rounded-2xl border border-slate-200 bg-slate-50 px-5 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition"
+                                    />
+                                </div>
+
+                                {/* Designation */}
+                                <div>
+                                    <label className="text-gray-500 font-medium">
+                                        Designation
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={
+                                            designation
+                                        }
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setDesignation(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Enter Designation"
+                                        className="w-full mt-2 h-[58px] rounded-2xl border border-slate-200 bg-slate-50 px-5 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition"
+                                    />
+                                </div>
+
+                                {/* Date */}
+                                <div>
+                                    <label className="text-gray-500 font-medium">
+                                        Event Date
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        value={
+                                            eventDate
+                                        }
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setEventDate(
+                                                e.target.value
+                                            )
+                                        }
+                                        className="w-full mt-2 h-[58px] rounded-2xl border border-slate-200 bg-slate-50 px-5 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition"
+                                    />
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Right Side */}
+                        <div>
+
+                            <h2 className="text-2xl font-bold text-slate-800 mb-8">
+                                Welcome Screen
+                            </h2>
+
+                            {/* Preview */}
+                            {preview && (
+                                <div className="mb-6 rounded-[25px] overflow-hidden shadow-lg border border-slate-200">
+
+                                    <img
+                                        src={preview}
+                                        alt=""
+                                        className="w-full aspect-video object-cover rounded-[20px]"
+                                    />
+
+                                </div>
+                            )}
+
+                            {/* Upload Box */}
+                            <label className="w-full min-h-[240px] sm:min-h-[300px] rounded-[30px] md:rounded-[35px] border-2 border-dashed border-purple-300 bg-purple-50 hover:bg-purple-100 transition flex flex-col items-center justify-center cursor-pointer p-6 sm:p-8">
+
+                                <div className="text-6xl">
+                                    🖼️
+                                </div>
+
+                                <h3 className="text-xl font-bold text-slate-700 mt-4 text-center">
+                                    Upload Welcome Image
+                                </h3>
+
+                                <p className="text-gray-500 text-center mt-2 text-sm sm:text-base">
+                                    Upload a 16:9 image
+                                    for smart board
+                                    display
+                                </p>
+
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    onChange={
+                                        handleImage
+                                    }
+                                />
+                            </label>
+
+                        </div>
                     </div>
 
-                    <div className="mt-8">
+                    {/* Button */}
+                    <div className="mt-10 flex justify-end">
 
-                        <h2 className="font-semibold text-lg mb-2">
-                            Upload 16:9
-                            Welcome Banner
-                        </h2>
-
-                        <input
-                            type="file"
-                            onChange={
-                                handleImage
+                        <button
+                            onClick={
+                                handleSubmit
                             }
-                        />
+                            disabled={loading}
+                            className="w-full sm:w-auto min-w-[220px] px-8 py-4 sm:py-5 rounded-2xl bg-gradient-to-r from-[#4338CA] to-[#9333EA] text-white text-base sm:text-lg font-bold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition duration-300"
+                        >
+                            {loading
+                                ? "Creating..."
+                                : "Create Event"}
+                        </button>
 
-                        {preview && (
-                            <img
-                                src={preview}
-                                alt=""
-                                className="mt-5 rounded-3xl w-full h-[350px] object-cover"
-                            />
-                        )}
                     </div>
-
-                    <button
-                        onClick={saveEvent}
-                        className="mt-8 bg-indigo-600 text-white px-8 py-4 rounded-2xl"
-                    >
-                        {loading
-                            ? "Saving..."
-                            : "Save Inauguration"}
-                    </button>
                 </div>
             </div>
         </div>
